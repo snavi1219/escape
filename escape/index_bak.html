@@ -1,0 +1,1655 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>Escape From Nowhere — Single Raid</title>
+
+  <style>
+    @import url('https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
+
+    :root{
+      --bg:#070a12;
+      --panel: rgba(10,14,26,.78);
+      --panel2: rgba(12,18,36,.70);
+      --stroke: rgba(255,255,255,.10);
+      --stroke2: rgba(255,255,255,.08);
+      --text: rgba(236,244,255,.92);
+      --muted: rgba(236,244,255,.62);
+      --muted2: rgba(236,244,255,.46);
+      --ok: #33e7a1;
+      --warn: #ffd166;
+      --bad: #ff5c7a;
+      --info: #6ea8ff;
+
+      --r: 18px;
+      --r2: 14px;
+      --shadow: 0 20px 70px rgba(0,0,0,.55);
+      --max: 1180px;
+
+      --h1: clamp(20px, 2.6vw, 30px);
+      --h2: clamp(16px, 2vw, 22px);
+      --p: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: "Galmuri11", system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      overflow-x:hidden;
+    }
+
+    /* ===== Background ===== */
+    .bg{
+      position:fixed; inset:0;
+      background:
+        linear-gradient(180deg, rgba(7,10,18,.88) 0%, rgba(7,10,18,.62) 38%, rgba(7,10,18,.92) 100%),
+        radial-gradient(820px 520px at 18% 8%, rgba(110,168,255,.22), transparent 60%),
+        radial-gradient(920px 560px at 82% 18%, rgba(255,92,122,.14), transparent 62%),
+        url("./assets/bg_destroyed_city_webtoon.png");
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.05) contrast(1.06);
+      transform: translateZ(0);
+    }
+    .grain{
+      position:fixed; inset:0;
+      pointer-events:none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+      opacity:.20;
+    }
+
+    /* ===== Layout ===== */
+    .wrap{ position:relative; min-height:100%; padding: 18px 14px 110px; } /* ✅ 하단 액션바 공간 확보 */
+    .container{ width:min(var(--max), 100%); margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+
+    .topbar{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      padding: 12px 14px;
+      border:1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(16,22,42,.78), rgba(10,14,26,.72));
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .brand b{ font-size: var(--h1); letter-spacing:.4px; }
+    .brand small{
+      color: var(--muted);
+      font-size: 12px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .top-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border:1px solid var(--stroke2);
+      border-radius: 999px;
+      background: rgba(8,10,18,.38);
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .dot{ width:8px; height:8px; border-radius:50%; background:var(--muted2); }
+    .dot.ok{ background:var(--ok); }
+    .dot.warn{ background:var(--warn); }
+    .dot.bad{ background:var(--bad); }
+    .dot.info{ background:var(--info); }
+
+    .grid{ display:grid; grid-template-columns: 1.05fr .95fr; gap:12px; }
+    .card{
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--stroke2);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      background: linear-gradient(180deg, rgba(18,26,52,.55), rgba(10,14,26,0));
+    }
+    .card .hd h2{ margin:0; font-size: var(--h2); letter-spacing:.2px; }
+    .card .bd{ padding: 12px 14px; }
+
+    /* ===== Buttons ===== */
+    .btn{
+      appearance:none;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 13px;
+      cursor:pointer;
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    .btn:hover{ background: rgba(255,255,255,.08); }
+    .btn:active{ transform: translateY(1px); }
+    .btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+    .btn.ok{ border-color: rgba(51,231,161,.35); background: rgba(51,231,161,.10); }
+    .btn.warn{ border-color: rgba(255,209,102,.35); background: rgba(255,209,102,.10); }
+    .btn.bad{ border-color: rgba(255,92,122,.35); background: rgba(255,92,122,.10); }
+    .btn.info{ border-color: rgba(110,168,255,.35); background: rgba(110,168,255,.10); }
+
+    .btn.small{ padding: 8px 10px; border-radius: 10px; font-size: 12px; }
+    .btn.tiny{ padding: 8px 10px; border-radius: 12px; font-size: 12px; }
+    .btn.block{ width:100%; }
+
+    /* ===== HUD ===== */
+    .hud{ display:grid; grid-template-columns: 1fr; gap:12px; }
+    .hudRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .kv{
+      border:1px solid var(--stroke2);
+      border-radius: var(--r2);
+      padding:10px 12px;
+      background: rgba(255,255,255,.04);
+      min-width:0;
+    }
+    .kv small{ color: var(--muted); display:block; font-size: 12px; }
+    .kv b{ display:block; margin-top:6px; font-size: 15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .bar{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      margin-top:8px;
+    }
+    .bar > i{
+      display:block;
+      height:100%;
+      width:0%;
+      background: rgba(110,168,255,.85);
+      transition: width .18s ease;
+    }
+
+    .tag{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--stroke2);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+    }
+    .tag strong{ color: var(--text); font-weight:700; }
+    .tag .mono{ font-family: var(--mono); font-size: 12px; color: var(--text); opacity:.9; }
+
+    .controls{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+    .controls .btn{ padding: 12px 12px; border-radius: 14px; }
+
+    /* ===== Tabs ===== */
+    .tabs{
+      display:flex; gap:8px;
+      padding: 10px 14px 0;
+      border-bottom: 1px solid var(--stroke2);
+      background: rgba(8,10,18,.18);
+    }
+    .tab{
+      border:1px solid var(--stroke2);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .tab.on{
+      color: var(--text);
+      border-color: rgba(110,168,255,.35);
+      background: rgba(110,168,255,.10);
+    }
+    .tabPanel{ display:none; }
+    .tabPanel.on{ display:block; }
+
+    .hint{ color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    /* ===== Equip (dropdowns remain) ===== */
+    .equipGrid{ display:grid; grid-template-columns: 1fr; gap:10px; margin-top: 10px; }
+    .equipSlot{
+      border:1px solid var(--stroke2);
+      background: rgba(255,255,255,.04);
+      border-radius: var(--r2);
+      padding: 10px 12px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .equipSlot .title{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .equipSlot .title small{ color: var(--muted); font-size: 12px; }
+    .equipSlot .title b{ font-size: 14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .select{
+      width:100%;
+      border:1px solid var(--stroke2);
+      background: rgba(10,14,26,.45);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 13px;
+      outline:none;
+    }
+
+    /* ===== Lists ===== */
+    .list{ display:flex; flex-direction:column; gap:8px; margin-top: 10px; }
+    .row{
+      border:1px solid var(--stroke2);
+      background: rgba(255,255,255,.03);
+      border-radius: var(--r2);
+      padding: 10px 12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      min-width:0;
+    }
+    .row .name{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      flex: 1 1 auto;
+    }
+    .row .name b{ font-size: 13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .row .name small{ color: var(--muted2); font-size: 11px; font-family: var(--mono); }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid var(--stroke2);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      font-size: 11px;
+      margin-left: 6px;
+    }
+
+    .rowRight{
+      flex: 0 0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-end;
+    }
+    .qty{ font-family: var(--mono); color: var(--text); opacity:.95; font-size: 12px; }
+
+    .actions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .actions .btn.tiny{
+      min-width: 72px;
+      padding: 9px 10px;
+      border-radius: 12px;
+    }
+
+    .raidSwapBox{
+      margin-top: 10px;
+      border:1px solid rgba(255,209,102,.22);
+      background: rgba(255,209,102,.06);
+      border-radius: var(--r2);
+      padding: 10px 12px;
+    }
+    .raidSwapBox b{ color: var(--warn); }
+
+    /* ===== Log ===== */
+    .log{
+      height: 340px;
+      overflow:auto;
+      border:1px solid var(--stroke2);
+      background: rgba(0,0,0,.22);
+      border-radius: var(--r2);
+      padding: 10px 10px;
+    }
+    .line{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 6px 2px;
+      font-size: 13px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .line .t{
+      flex:0 0 auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      opacity:.85;
+      margin-top: 1px;
+    }
+    .line .tag2{
+      flex:0 0 auto;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid var(--stroke2);
+      background: rgba(255,255,255,.04);
+      font-size: 11px;
+      color: var(--muted);
+      min-width:72px;
+      text-align:center;
+    }
+    .tag2.ok{ color: var(--ok); border-color: rgba(51,231,161,.25); background: rgba(51,231,161,.08); }
+    .tag2.bad{ color: var(--bad); border-color: rgba(255,92,122,.25); background: rgba(255,92,122,.08); }
+    .tag2.warn{ color: var(--warn); border-color: rgba(255,209,102,.25); background: rgba(255,209,102,.08); }
+    .tag2.info{ color: var(--info); border-color: rgba(110,168,255,.25); background: rgba(110,168,255,.08); }
+
+    /* ===== Modal ===== */
+    .modalWrap{
+      position:fixed; inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      background: rgba(0,0,0,.65);
+      z-index: 80;
+    }
+    .modal{
+      width: min(560px, 100%);
+      border:1px solid var(--stroke);
+      border-radius: var(--r);
+      background: rgba(12,18,36,.92);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modal .hd{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--stroke2);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .modal .hd b{ font-size: 14px; }
+    .modal .bd{ padding: 12px 14px; }
+    .modal .ft{ padding: 12px 14px; border-top: 1px solid var(--stroke2); display:flex; gap:8px; justify-content:flex-end; }
+
+    .throwRow{
+      border:1px solid var(--stroke2);
+      background: rgba(255,255,255,.04);
+      border-radius: var(--r2);
+      padding: 10px 12px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .throwRow small{ color: var(--muted); display:block; font-size: 12px; }
+    .throwRow b{ font-size: 14px; }
+    .throwRow .right{ display:flex; gap:8px; align-items:center; }
+    .throwRow .right .qty{ font-family: var(--mono); color: var(--text); opacity:.9; font-size: 12px; }
+
+    /* ===== Bottom sticky action bar ===== */
+    .actionbar{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(7,10,18,0) 0%, rgba(7,10,18,.82) 22%, rgba(7,10,18,.92) 100%);
+      backdrop-filter: blur(10px);
+      z-index: 60;
+    }
+    .actionbar .inner{
+      width: min(var(--max), 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .actionbar .main{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    .actionbar .main .btn{ flex: 1 1 auto; }
+    .actionbar .combat{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .actionbar .combat .btn{ padding: 12px 10px; border-radius: 14px; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .log{ height: 320px; }
+      .actionbar .inner{ grid-template-columns: 1fr; }
+      .actionbar .combat{ grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 560px){
+      .wrap{ padding: 14px 10px 120px; }
+      .topbar{ padding: 10px 12px; }
+      .controls{ grid-template-columns: repeat(2, 1fr); }
+      .hudRow{ grid-template-columns: 1fr; }
+      .log{ height: 300px; }
+      .actions .btn.tiny{ min-width: 64px; }
+      .row{ align-items:stretch; }
+      .rowRight{ justify-content:space-between; }
+      .actionbar .combat{ grid-template-columns: repeat(2, 1fr); } /* ✅ 모바일에선 2열 */
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <div class="container">
+
+      <div class="topbar">
+        <div class="brand">
+          <b>Escape From Nowhere</b>
+          <small>탐색 → 교전/루팅 → 탈출(저장). 레이드 중 스왑은 RAID BAG에서만.</small>
+        </div>
+        <div class="top-actions">
+          <span class="pill"><span id="apiDot" class="dot"></span><span id="apiStatus">DISCONNECTED</span></span>
+          <span class="pill"><span class="dot info"></span><span style="font-family:var(--mono)">KEY</span> <span id="singleKey">-</span></span>
+          <button id="btnHelp" class="btn small">도움말</button>
+          <button id="btnInvRefresh" class="btn small info" disabled>동기화</button>
+          <button id="btnResetLocal" class="btn small">로컬 리셋</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- Left -->
+        <div class="card">
+          <div class="hd">
+            <h2>레이드</h2>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <span class="tag"><strong>상태</strong> <span id="raidStatus" class="mono" style="font-family:var(--mono)">idle</span></span>
+              <span class="tag"><strong>위치</strong> <span id="loc" class="mono" style="font-family:var(--mono)">은신처</span></span>
+              <span class="tag"><strong>턴</strong> <span id="turnNo" class="mono" style="font-family:var(--mono)">1</span></span>
+              <button id="btnSingleReady" class="btn small ok">싱글 유저 준비</button>
+              <button id="btnExtract" class="btn small warn" disabled>탈출</button>
+            </div>
+          </div>
+
+          <div class="bd">
+            <div class="hud">
+              <div class="hudRow">
+                <div class="kv">
+                  <small>플레이어</small>
+                  <b id="pName">Survivor</b>
+                  <div class="bar"><i id="pHpBar"></i></div>
+                  <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
+                    <span class="tag"><strong>HP</strong> <span class="mono" style="font-family:var(--mono)"><span id="pHp">80</span>/<span id="pHpMax">80</span></span></span>
+                    <span class="tag"><strong>DEF</strong> <span class="mono" style="font-family:var(--mono)" id="pDef">2</span></span>
+                  </div>
+                </div>
+
+                <div class="kv">
+                  <small>투척 가능(출격반입 + 레이드백)</small>
+                  <b>Stone <span class="mono" style="font-family:var(--mono)" id="tStone">0</span> · IED <span class="mono" style="font-family:var(--mono)" id="tIed">0</span> · Grenade <span class="mono" style="font-family:var(--mono)" id="tG">0</span></b>
+                  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button id="actAttack" class="btn info" disabled>1 공격</button>
+                    <button id="actThrow" class="btn warn" disabled>2 투척</button>
+                    <button id="actHeal" class="btn" disabled>3 치유</button>
+                    <button id="actRun" class="btn bad" disabled>4 후퇴</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="controls">
+                <button id="actExplore" class="btn ok block">N 탐색</button>
+                <button id="actRest" class="btn block">정비</button>
+                <button id="btnBagRefresh" class="btn info block" disabled>가방/장비 보기</button>
+                <button id="btnGrantStarter" class="btn block" disabled>기본 지급(안내)</button>
+              </div>
+
+              <div class="kv">
+                <small>전투 로그</small>
+                <div id="log" class="log" aria-live="polite"></div>
+                <div class="hint" style="margin-top:10px;">
+                  초보 팁: 레이드 중 장비 교체는 <b>오른쪽 ‘RAID BAG(스왑)’</b>에서 아이템 카드의 <b>장착 버튼</b>을 누르세요.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right -->
+        <div class="card">
+          <div class="hd">
+            <h2>장비 · 인벤</h2>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <span class="pill"><span class="dot"></span><span style="font-family:var(--mono)">ZONE</span> <span id="zone">R1</span></span>
+              <input id="singleName" class="select" style="width:180px; padding:8px 10px;" placeholder="닉네임(옵션)" />
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist">
+            <button class="tab on" data-tab="tabBag" role="tab">RAID BAG(스왑)</button>
+            <button class="tab" data-tab="tabEquip" role="tab">현재 장비</button>
+            <button class="tab" data-tab="tabStash" role="tab">STASH</button>
+          </div>
+
+          <div class="bd">
+            <!-- BAG -->
+            <div id="tabBag" class="tabPanel on">
+              <div class="hint">
+                <b>레이드 중 스왑(B안)</b>: 레이드백에서 주운 무기만 바로 장착 가능.<br>
+                레이드 중에는 STASH에서 장착 불가, <b>RAID BAG만 검증/차감</b>.
+              </div>
+              <div class="raidSwapBox">
+                <div class="hint" id="broughtHint">출격 반입 장비(유실 위험): -</div>
+              </div>
+              <div id="bagList" class="list"></div>
+            </div>
+
+            <!-- Equip -->
+            <div id="tabEquip" class="tabPanel">
+              <div class="hint">
+                드롭다운은 “빠른 설정”용. 초보는 BAG 카드 버튼을 권장.
+              </div>
+
+              <div class="equipGrid">
+                <div class="equipSlot">
+                  <div class="title"><small>주무기</small><b id="eqNowPrimary">-</b></div>
+                  <div style="min-width:240px; max-width:360px;">
+                    <select id="eqPrimary" class="select" aria-label="주무기 선택"></select>
+                  </div>
+                </div>
+                <div class="equipSlot">
+                  <div class="title"><small>보조무기</small><b id="eqNowSecondary">-</b></div>
+                  <div style="min-width:240px; max-width:360px;">
+                    <select id="eqSecondary" class="select" aria-label="보조무기 선택"></select>
+                  </div>
+                </div>
+                <div class="equipSlot">
+                  <div class="title"><small>근접</small><b id="eqNowMelee">-</b></div>
+                  <div style="min-width:240px; max-width:360px;">
+                    <select id="eqMelee" class="select" aria-label="근접 무기 선택"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STASH -->
+            <div id="tabStash" class="tabPanel">
+              <div class="hint">보관함(STASH). 대기(idle) 상태에서만 장착에 사용됩니다.</div>
+              <div id="stashList" class="list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Throw Modal -->
+  <div id="throwModalWrap" class="modalWrap" role="dialog" aria-modal="true" aria-label="투척 선택">
+    <div class="modal">
+      <div class="hd">
+        <b>투척 선택</b>
+        <button id="btnThrowClose" class="btn small">닫기</button>
+      </div>
+      <div class="bd" style="display:grid; gap:10px;">
+        <div class="throwRow">
+          <div><small>돌맹이</small><b>Stone</b></div>
+          <div class="right"><span class="qty">x <span id="throwStoneQty">0</span></span><button id="btnThrowStone" class="btn small warn">사용</button></div>
+        </div>
+        <div class="throwRow">
+          <div><small>급조 폭발물(자해 가능)</small><b>IED</b></div>
+          <div class="right"><span class="qty">x <span id="throwIedQty">0</span></span><button id="btnThrowIed" class="btn small warn">사용</button></div>
+        </div>
+        <div class="throwRow">
+          <div><small>수류탄</small><b>Grenade</b></div>
+          <div class="right"><span class="qty">x <span id="throwGQty">0</span></span><button id="btnThrowG" class="btn small warn">사용</button></div>
+        </div>
+      </div>
+      <div class="ft">
+        <button id="btnThrowCancel" class="btn">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help / Onboarding Modal -->
+  <div id="helpModalWrap" class="modalWrap" role="dialog" aria-modal="true" aria-label="도움말">
+    <div class="modal">
+      <div class="hd">
+        <b>처음 오셨나요?</b>
+        <button id="btnHelpClose" class="btn small">닫기</button>
+      </div>
+      <div class="bd" style="display:grid; gap:10px;">
+        <div class="kv" style="margin:0;">
+          <small>기본 진행</small>
+          <b style="font-size:14px; line-height:1.5;">
+            1) <span style="color:var(--ok)">싱글 유저 준비</span> → 2) <span style="color:var(--ok)">탐색</span> → 3) 교전 승리 시 <span style="color:var(--warn)">RAID BAG</span>에 루팅 → 4) <span style="color:var(--warn)">탈출</span>하면 STASH 저장
+          </b>
+        </div>
+        <div class="kv" style="margin:0;">
+          <small>레이드 중 스왑(B안)</small>
+          <b style="font-size:14px; line-height:1.5;">
+            레이드 중엔 STASH 장착 불가. <span style="color:var(--warn)">RAID BAG(스왑)</span>에서 아이템 카드의 장착 버튼으로 교체하세요.
+          </b>
+          <div class="hint" style="margin-top:8px;">
+            스왑이 성공하면 로그에 “교체 전/후 + 이전 장비가 BAG로 이동”이 출력됩니다.
+          </div>
+        </div>
+        <div class="kv" style="margin:0;">
+          <small>조작</small>
+          <div class="hint">
+            PC: 1공격 / 2투척 / 3치유 / 4후퇴 / N탐색<br>
+            모바일: 하단 액션바 버튼만으로 전부 플레이 가능
+          </div>
+        </div>
+      </div>
+      <div class="ft">
+        <button id="btnHelpDontShow" class="btn">다시 보지 않기</button>
+        <button id="btnHelpOk" class="btn ok">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom action bar -->
+  <div class="actionbar" aria-label="모바일 액션바">
+    <div class="inner">
+      <div class="main">
+        <button id="mExplore" class="btn ok">탐색</button>
+        <button id="mRest" class="btn">정비</button>
+        <button id="mExtract" class="btn warn" disabled>탈출</button>
+      </div>
+      <div class="combat">
+        <button id="mAttack" class="btn info" disabled>공격</button>
+        <button id="mThrow" class="btn warn" disabled>투척</button>
+        <button id="mHeal" class="btn" disabled>치유</button>
+        <button id="mRun" class="btn bad" disabled>후퇴</button>
+      </div>
+      <div class="main">
+        <button id="mBag" class="btn info" disabled>가방</button>
+        <button id="mSync" class="btn info" disabled>동기화</button>
+        <button id="mHelp" class="btn">도움말</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const el = (id) => document.getElementById(id);
+  const LS_KEY = "efn_single_user_key_v1";
+  const LS_NAME = "efn_single_user_name_v1";
+  const LS_HELP_OFF = "efn_help_hide_v1";
+
+  function randInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function chance(pct){ return Math.random()*100 < pct; }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function escapeHtml(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+  function setBar(barEl, cur, max){
+    const pct = max>0 ? (cur/max)*100 : 0;
+    barEl.style.width = clamp(pct,0,100).toFixed(1)+"%";
+  }
+
+  async function apiPost(url, data){
+    const res = await fetch(url, {
+      method:"POST",
+      headers:{ "Content-Type":"application/x-www-form-urlencoded" },
+      body: new URLSearchParams(data).toString()
+    });
+    return res.json();
+  }
+  async function apiGet(url){
+    const res = await fetch(url);
+    return res.json();
+  }
+
+  const ENEMIES = [
+    { id:"z1",  kind:"zombie", name:"부패한 워커",       hp:[24,34], atk:[4,7],  def:[0,1], loot:[["thr_stone",40],["melee_prybar",8]] },
+    { id:"z2",  kind:"zombie", name:"울부짖는 러너",     hp:[18,28], atk:[6,9],  def:[0,1], loot:[["thr_stone",50],["melee_bat",6]] },
+    { id:"z3",  kind:"zombie", name:"팽창 블로터",       hp:[32,46], atk:[5,8],  def:[1,2], loot:[["thr_ied",10],["melee_pipewrench",6]] },
+    { id:"z4",  kind:"zombie", name:"철근 브루트",       hp:[40,58], atk:[7,10], def:[2,3], loot:[["melee_machete",4],["thr_grenade",5]] },
+    { id:"z5",  kind:"zombie", name:"유리턱 크리퍼",     hp:[20,30], atk:[5,8],  def:[0,1], loot:[["thr_stone",55],["pst_compact9",3]] },
+    { id:"z6",  kind:"zombie", name:"헬멧 헤드바터",     hp:[30,44], atk:[6,9],  def:[1,3], loot:[["pst_service9",4],["thr_stone",35]] },
+    { id:"z7",  kind:"zombie", name:"어둠의 스토커",     hp:[22,32], atk:[6,10], def:[0,2], loot:[["thr_ied",8],["pst_machine9",3]] },
+    { id:"z8",  kind:"zombie", name:"혈청 변이체",       hp:[36,52], atk:[8,12], def:[1,3], loot:[["rif_sm9",3],["thr_grenade",6]] },
+    { id:"z9",  kind:"zombie", name:"절단자",           hp:[28,40], atk:[7,11], def:[1,2], loot:[["melee_scrapknife",6],["thr_stone",45]] },
+    { id:"z10", kind:"zombie", name:"산성 스피터",       hp:[26,38], atk:[6,10], def:[0,2], loot:[["thr_ied",12],["pst_heavy45",2]] },
+
+    { id:"s1", kind:"scav", name:"스캐브 정찰꾼",         hp:[26,38], atk:[6,9],  def:[1,2], loot:[["pst_compact9",10],["thr_stone",50]] },
+    { id:"s2", kind:"scav", name:"스캐브 약탈자",         hp:[28,42], atk:[7,10], def:[1,2], loot:[["pst_service9",8],["melee_bat",10]] },
+    { id:"s3", kind:"scav", name:"스캐브 방화범",         hp:[24,36], atk:[7,11], def:[0,2], loot:[["thr_ied",18],["melee_pipewrench",8]] },
+    { id:"s4", kind:"scav", name:"스캐브 가드",           hp:[30,46], atk:[7,10], def:[2,3], loot:[["rif_sm9",7],["thr_grenade",6]] },
+    { id:"s5", kind:"scav", name:"스캐브 저격수(허접)",   hp:[22,34], atk:[8,12], def:[0,2], loot:[["rif_bolt",5],["thr_stone",30]] },
+
+    { id:"p1", kind:"pmc", name:"PMC 돌격수",             hp:[40,58], atk:[10,14], def:[3,5], loot:[["rif_carbine556",10],["thr_grenade",10]] },
+    { id:"p2", kind:"pmc", name:"PMC 브리처",             hp:[38,56], atk:[9,13],  def:[3,5], loot:[["pst_heavy45",10],["melee_machete",8]] },
+    { id:"p3", kind:"pmc", name:"PMC 지정사수",           hp:[36,54], atk:[11,16], def:[2,5], loot:[["rif_dmr762",8],["thr_ied",12]] },
+    { id:"p4", kind:"pmc", name:"PMC 중화기",             hp:[46,68], atk:[12,18], def:[4,6], loot:[["rif_battle762",8],["thr_grenade",12]] },
+    { id:"p5", kind:"pmc", name:"PMC 요원장(엘리트)",     hp:[52,78], atk:[13,19], def:[4,7], loot:[["rif_dmr762",10],["pst_revolver357",8]] },
+  ];
+
+  let ITEM_MAP = {};
+  let STASH = [];
+  let LOADOUT = { primary:null, secondary:null, melee:null };
+  let RAID = { status:"idle", inventory:{}, throw:{thr_stone:0, thr_ied:0, thr_grenade:0}, brought:{primary:null,secondary:null,melee:null} };
+
+  let state = {
+    turn: 1,
+    location: "은신처",
+    inCombat: false,
+    player: { hpMax: 80, hp: 80, def: 2 },
+    enemy: null,
+    log: []
+  };
+
+  function setApiStatus(text, level){
+    el("apiStatus").textContent = text;
+    const dot = el("apiDot");
+    dot.className = "dot";
+    if (level) dot.classList.add(level);
+  }
+
+  function getUserKey(){ return localStorage.getItem(LS_KEY) || ""; }
+  function setUserKey(k){
+    localStorage.setItem(LS_KEY, k);
+    el("singleKey").textContent = k || "-";
+  }
+
+  function nm(id){
+    if (!id) return "-";
+    return ITEM_MAP[id]?.name || id;
+  }
+
+  function slotLabel(slot){
+    if (slot === "primary") return "주무기";
+    if (slot === "secondary") return "보조";
+    if (slot === "melee") return "근접";
+    return slot;
+  }
+
+  function tagLabel(tag){
+    if (tag === "SYS") return { cls:"info", name:"SYSTEM" };
+    if (tag === "P")   return { cls:"ok",   name:"YOU" };
+    if (tag === "E")   return { cls:"bad",  name:"HOSTILE" };
+    if (tag === "EVT") return { cls:"warn", name:"EVENT" };
+    return { cls:"", name:tag };
+  }
+
+  let lastLogRendered = 0;
+  function pushLog(tag, text){
+    state.log.push({t:Date.now(), tag, text});
+    if (state.log.length > 260) state.log.shift();
+    renderLogAppend();
+  }
+  function renderLogAppend(){
+    const logEl = el("log");
+    for (; lastLogRendered < state.log.length; lastLogRendered++){
+      const item = state.log[lastLogRendered];
+      const tag = tagLabel(item.tag);
+      const line = document.createElement("div");
+      line.className = "line";
+      const tt = new Date(item.t);
+      const h = String(tt.getHours()).padStart(2,"0");
+      const m = String(tt.getMinutes()).padStart(2,"0");
+      const s = String(tt.getSeconds()).padStart(2,"0");
+      line.innerHTML = `
+        <span class="t">${h}:${m}:${s}</span>
+        <span class="tag2 ${tag.cls}">${tag.name}</span>
+        <span>${escapeHtml(item.text)}</span>
+      `;
+      logEl.appendChild(line);
+    }
+    while (logEl.children.length > 320) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function availThrow(id){
+    return (Number(RAID.throw?.[id] || 0) + Number(RAID.inventory?.[id] || 0));
+  }
+
+  function renderPlayer(){
+    el("loc").textContent = state.location;
+    el("zone").textContent = "R1";
+    el("turnNo").textContent = String(state.turn);
+
+    el("pName").textContent = (el("singleName").value || localStorage.getItem(LS_NAME) || "Survivor");
+    el("pHp").textContent = state.player.hp;
+    el("pHpMax").textContent = state.player.hpMax;
+    el("pDef").textContent = state.player.def;
+    setBar(el("pHpBar"), state.player.hp, state.player.hpMax);
+
+    el("raidStatus").textContent = RAID.status;
+
+    // throw qty
+    el("tStone").textContent = availThrow("thr_stone");
+    el("tIed").textContent   = availThrow("thr_ied");
+    el("tG").textContent     = availThrow("thr_grenade");
+
+    // header equip summary
+    el("eqNowPrimary").textContent   = nm(LOADOUT.primary);
+    el("eqNowSecondary").textContent = nm(LOADOUT.secondary);
+    el("eqNowMelee").textContent     = nm(LOADOUT.melee);
+
+    const b = RAID.brought || {primary:null,secondary:null,melee:null};
+    el("broughtHint").textContent =
+      `출격 반입 장비(유실 위험): 주무기 ${nm(b.primary)} / 보조 ${nm(b.secondary)} / 근접 ${nm(b.melee)}`;
+
+    const hasUser = !!getUserKey();
+
+    // desktop
+    el("btnInvRefresh").disabled = !hasUser;
+    el("btnBagRefresh").disabled = !hasUser;
+    el("btnExtract").disabled = !(hasUser && RAID.status === "in_raid" && !state.inCombat);
+
+    el("actAttack").disabled = !(hasUser && RAID.status === "in_raid" && state.inCombat);
+    el("actThrow").disabled  = !(hasUser && RAID.status === "in_raid" && state.inCombat);
+    el("actHeal").disabled   = !(hasUser && RAID.status === "in_raid" && state.inCombat);
+    el("actRun").disabled    = !(hasUser && RAID.status === "in_raid" && state.inCombat);
+
+    // mobile actionbar mirrors
+    el("mExplore").disabled = !hasUser;
+    el("mRest").disabled = !(hasUser && RAID.status === "in_raid" && !state.inCombat);
+    el("mExtract").disabled = !(hasUser && RAID.status === "in_raid" && !state.inCombat);
+    el("mBag").disabled = !hasUser;
+    el("mSync").disabled = !hasUser;
+
+    el("mAttack").disabled = el("actAttack").disabled;
+    el("mThrow").disabled  = el("actThrow").disabled;
+    el("mHeal").disabled   = el("actHeal").disabled;
+    el("mRun").disabled    = el("actRun").disabled;
+  }
+
+  function buildEquipOptions(){
+    const noneOpt = (label) => `<option value="">(해제) ${label}</option>`;
+    const items = Object.values(ITEM_MAP);
+
+    const stashQty = {};
+    for (const s of STASH) stashQty[s.item_id] = (stashQty[s.item_id] ?? 0) + Number(s.qty||0);
+
+    const bagQty = {};
+    for (const [id,q] of Object.entries(RAID.inventory || {})) bagQty[id] = Number(q||0);
+
+    const source = (RAID.status === "in_raid") ? "bag" : "stash";
+    const getQty = (id) => source === "bag" ? (bagQty[id] ?? 0) : (stashQty[id] ?? 0);
+
+    function optionsFor(types){
+      return items
+        .filter(it => types.includes(it.type))
+        .filter(it => getQty(it.item_id) > 0)
+        .map(it => {
+          const q = getQty(it.item_id);
+          const suffix = (source === "bag") ? ` (BAG x${q})` : ` (STASH x${q})`;
+          return `<option value="${it.item_id}">${escapeHtml(it.name)}${suffix}</option>`;
+        })
+        .join("");
+    }
+
+    el("eqPrimary").innerHTML   = noneOpt("주무기") + optionsFor(["rifle","pistol"]);
+    el("eqSecondary").innerHTML = noneOpt("보조")   + optionsFor(["pistol","rifle"]);
+    el("eqMelee").innerHTML     = noneOpt("근접")   + optionsFor(["melee"]);
+
+    el("eqPrimary").value   = LOADOUT.primary || "";
+    el("eqSecondary").value = LOADOUT.secondary || "";
+    el("eqMelee").value     = LOADOUT.melee || "";
+  }
+
+  function equipButtonsFor(item){
+    const type = item?.type || "unknown";
+    const id = item?.item_id || "";
+    if (!id) return "";
+
+    const inRaid = (RAID.status === "in_raid");
+    const idle = (RAID.status === "idle");
+
+    if (inRaid){
+      if (type === "melee"){
+        return `<button class="btn tiny warn" data-equip-slot="melee" data-equip-id="${id}">근접 장착</button>`;
+      }
+      if (type === "pistol"){
+        return `
+          <button class="btn tiny warn" data-equip-slot="secondary" data-equip-id="${id}">보조 장착</button>
+          <button class="btn tiny warn" data-equip-slot="primary" data-equip-id="${id}">주무기 장착</button>
+        `;
+      }
+      if (type === "rifle"){
+        return `
+          <button class="btn tiny warn" data-equip-slot="primary" data-equip-id="${id}">주무기 장착</button>
+          <button class="btn tiny warn" data-equip-slot="secondary" data-equip-id="${id}">보조 장착</button>
+        `;
+      }
+      return "";
+    }
+
+    if (idle){
+      if (type === "melee"){
+        return `<button class="btn tiny info" data-equip-slot="melee" data-equip-id="${id}">근접 장착</button>`;
+      }
+      if (type === "pistol"){
+        return `
+          <button class="btn tiny info" data-equip-slot="secondary" data-equip-id="${id}">보조 장착</button>
+          <button class="btn tiny info" data-equip-slot="primary" data-equip-id="${id}">주무기 장착</button>
+        `;
+      }
+      if (type === "rifle"){
+        return `
+          <button class="btn tiny info" data-equip-slot="primary" data-equip-id="${id}">주무기 장착</button>
+          <button class="btn tiny info" data-equip-slot="secondary" data-equip-id="${id}">보조 장착</button>
+        `;
+      }
+    }
+    return "";
+  }
+
+  function wireEquipButtons(rootEl){
+    rootEl.querySelectorAll("[data-equip-slot][data-equip-id]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const slot = btn.getAttribute("data-equip-slot");
+        const id = btn.getAttribute("data-equip-id");
+        await equip(slot, id);
+      });
+    });
+  }
+
+  function renderLists(){
+    const stashEl = el("stashList");
+    stashEl.innerHTML = "";
+    if (!STASH.length){
+      stashEl.innerHTML = `<div class="hint">보관함이 비어 있습니다. (탈출 성공 시 파밍이 저장됩니다.)</div>`;
+    } else {
+      for (const row of STASH){
+        const it = ITEM_MAP[row.item_id];
+        const nm2 = it ? it.name : row.item_id;
+        const tp = it ? it.type : "unknown";
+        const rq = it ? it.rarity : "-";
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `
+          <div class="name">
+            <b>${escapeHtml(nm2)} <span class="badge">${escapeHtml(tp)}</span> <span class="badge">${escapeHtml(rq)}</span></b>
+            <small>${escapeHtml(row.item_id)}</small>
+          </div>
+          <div class="rowRight">
+            <div class="qty">x ${Number(row.qty||0)}</div>
+            <div class="actions">${equipButtonsFor(it || {item_id: row.item_id, type: tp})}</div>
+          </div>
+        `;
+        stashEl.appendChild(div);
+      }
+      wireEquipButtons(stashEl);
+    }
+
+    const bagEl = el("bagList");
+    bagEl.innerHTML = "";
+    const bagPairs = Object.entries(RAID.inventory || {}).filter(([_,q]) => Number(q)>0);
+
+    if (!bagPairs.length){
+      bagEl.innerHTML = `<div class="hint">RAID BAG이 비어 있습니다. (교전 승리/탐색으로 루팅)</div>`;
+    } else {
+      for (const [item_id, qty] of bagPairs){
+        const it = ITEM_MAP[item_id];
+        const nm2 = it ? it.name : item_id;
+        const tp = it ? it.type : "unknown";
+        const rq = it ? it.rarity : "-";
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `
+          <div class="name">
+            <b>${escapeHtml(nm2)} <span class="badge">${escapeHtml(tp)}</span> <span class="badge">${escapeHtml(rq)}</span></b>
+            <small>${escapeHtml(item_id)}</small>
+          </div>
+          <div class="rowRight">
+            <div class="qty">x ${Number(qty||0)}</div>
+            <div class="actions">${equipButtonsFor(it || {item_id, type: tp})}</div>
+          </div>
+        `;
+        bagEl.appendChild(div);
+      }
+      wireEquipButtons(bagEl);
+    }
+  }
+
+  function renderAll(){
+    renderPlayer();
+    buildEquipOptions();
+    renderLists();
+    renderLogAppend();
+  }
+
+  function getWeaponForAttack(){
+    const pick = LOADOUT.primary || LOADOUT.secondary || LOADOUT.melee || "";
+    const it = ITEM_MAP[pick];
+    if (!it) return { item_id:"", name:"맨손", type:"melee", stats:{dmg:[1,3], crit:1} };
+
+    let stats = {};
+    try{ stats = JSON.parse(it.stats_json || "{}") || {}; } catch(e){ stats = {}; }
+    const dmg = Array.isArray(stats.dmg) ? stats.dmg : [2,5];
+    const crit = Number(stats.crit ?? 2);
+    return { item_id: it.item_id, name: it.name, type: it.type, stats: { dmg, crit } };
+  }
+
+  function enemySpawn(){
+    const t = state.turn;
+    const scale = 1 + Math.min(0.7, (t-1)*0.03);
+
+    const r = Math.random();
+    let pool = ENEMIES.filter(e => e.kind === "zombie");
+    if (r >= 0.70 && r < 0.90) pool = ENEMIES.filter(e => e.kind === "scav");
+    if (r >= 0.90) pool = ENEMIES.filter(e => e.kind === "pmc");
+
+    const base = pool[randInt(0, pool.length-1)];
+    const hp = Math.floor(randInt(base.hp[0], base.hp[1]) * scale);
+    const atk = Math.floor(randInt(base.atk[0], base.atk[1]) * scale);
+    const def = Math.floor(randInt(base.def[0], base.def[1]) + (t>10 ? 1 : 0));
+    return {...base, hpMax:hp, hp, atk, def};
+  }
+
+  function computeDamageFromRange(range, defenderDef, critPct){
+    const base = randInt(range[0], range[1]);
+    const isCrit = chance(critPct);
+    const raw = isCrit ? Math.floor(base*1.6) : base;
+    const dmg = Math.max(1, raw - defenderDef + randInt(-1, 1));
+    return { dmg, isCrit };
+  }
+
+  function startCombat(){
+    state.enemy = enemySpawn();
+    state.inCombat = true;
+    state.location = "교전";
+    // ✅ 콘텐츠 업데이트(연출 문구 다양화)
+    const cue = [
+      "부서진 차량 뒤에서 그림자가 움직입니다.",
+      "멀리서 유리 깨지는 소리… 곧바로 발소리가 다가옵니다.",
+      "짙은 안개 속, 정체 불명의 실루엣이 달려옵니다.",
+      "무전 잡음… 그리고 즉시 교전입니다."
+    ];
+    pushLog("EVT", cue[randInt(0, cue.length-1)] + " (적 정보는 확인 불가)");
+    renderAll();
+  }
+
+  async function onEnemyKilled(){
+    pushLog("E", `격파 확인. 대상: ${state.enemy.name} (${state.enemy.kind.toUpperCase()})`);
+
+    const drops = [];
+    const maxDrop = chance(25) ? 2 : 1;
+
+    for (let i=0; i<maxDrop; i++){
+      const table = state.enemy.loot || [];
+      let pick = null;
+      for (const [item_id, pct] of table){
+        if (chance(pct)){ pick = item_id; break; }
+      }
+      if (!pick) pick = "thr_stone";
+      drops.push(pick);
+    }
+
+    for (const item_id of drops){
+      const r = await apiPost("./api/raid_add_loot.php", { user_key:getUserKey(), item_id, qty:1 });
+      if (!r.ok){
+        pushLog("SYS", `루팅 저장 실패: ${r.error || "unknown"} (raid_add_loot.php)`);
+      } else {
+        const nm2 = ITEM_MAP[item_id]?.name || item_id;
+        pushLog("EVT", `전리품 확보: ${nm2} x1 (RAID BAG)`);
+        RAID.inventory[item_id] = (Number(RAID.inventory[item_id]||0) + 1);
+      }
+    }
+
+    state.inCombat = false;
+    state.enemy = null;
+    state.location = "탐색 중";
+    renderAll();
+  }
+
+  async function playerAttack(){
+    if (!state.inCombat || !state.enemy) return;
+    const w = getWeaponForAttack();
+    const {dmg, isCrit} = computeDamageFromRange(w.stats.dmg, state.enemy.def, w.stats.crit || 2);
+    state.enemy.hp = clamp(state.enemy.hp - dmg, 0, state.enemy.hpMax);
+
+    pushLog("P", `${w.name} 사용. ${isCrit ? "치명타! " : ""}${dmg} 피해.`);
+    if (state.enemy.hp <= 0){
+      await onEnemyKilled();
+      state.turn += 1;
+      return;
+    }
+    enemyTurn();
+  }
+
+  // Throw Modal
+  const ThrowUI = {
+    open(){ syncThrowModal(); el("throwModalWrap").style.display = "flex"; },
+    close(){ el("throwModalWrap").style.display = "none"; }
+  };
+  function syncThrowModal(){
+    const s = availThrow("thr_stone");
+    const i = availThrow("thr_ied");
+    const g = availThrow("thr_grenade");
+    el("throwStoneQty").textContent = s;
+    el("throwIedQty").textContent = i;
+    el("throwGQty").textContent = g;
+    el("btnThrowStone").disabled = (s <= 0);
+    el("btnThrowIed").disabled   = (i <= 0);
+    el("btnThrowG").disabled     = (g <= 0);
+  }
+
+  async function applyThrow(item_id){
+    const r = await apiPost("./api/raid_use_throw.php", { user_key:getUserKey(), item_id });
+    if (!r.ok){
+      pushLog("SYS", `투척 사용 실패: ${r.error || "unknown"} (raid_use_throw.php)`);
+      renderAll();
+      return false;
+    }
+    if (r.throw) RAID.throw = r.throw;
+    if (r.inventory) RAID.inventory = r.inventory;
+    renderAll();
+    return true;
+  }
+
+  async function doThrowStone(){
+    if (!state.inCombat || !state.enemy) return;
+    if (availThrow("thr_stone") <= 0) return;
+    const ok = await applyThrow("thr_stone");
+    if (!ok) return;
+
+    const missPct = 30;
+    if (chance(missPct)){
+      pushLog("P", `돌맹이 투척! 빗나갔습니다. (MISS)`);
+    } else {
+      const dmg = randInt(1,3);
+      state.enemy.hp = clamp(state.enemy.hp - dmg, 0, state.enemy.hpMax);
+      pushLog("P", `돌맹이 적중. ${dmg} 피해.`);
+    }
+    if (state.enemy.hp <= 0){
+      await onEnemyKilled();
+      state.turn += 1;
+      return;
+    }
+    enemyTurn();
+  }
+
+  async function doThrowIed(){
+    if (!state.inCombat || !state.enemy) return;
+    if (availThrow("thr_ied") <= 0) return;
+    const ok = await applyThrow("thr_ied");
+    if (!ok) return;
+
+    const dmg = randInt(10,18);
+    state.enemy.hp = clamp(state.enemy.hp - dmg, 0, state.enemy.hpMax);
+    pushLog("P", `급조 수류탄 폭발! ${dmg} 피해.`);
+
+    const selfPct = 20;
+    if (chance(selfPct)){
+      const sd = randInt(6,12);
+      state.player.hp = clamp(state.player.hp - sd, 0, state.player.hpMax);
+      pushLog("SYS", `파편 역류! 당신도 ${sd} 피해. (자해)`);
+    }
+    if (state.player.hp <= 0){
+      await handleDeath("자해로 사망했습니다.");
+      return;
+    }
+    if (state.enemy.hp <= 0){
+      await onEnemyKilled();
+      state.turn += 1;
+      return;
+    }
+    enemyTurn();
+  }
+
+  async function doThrowGrenade(){
+    if (!state.inCombat || !state.enemy) return;
+    if (availThrow("thr_grenade") <= 0) return;
+    const ok = await applyThrow("thr_grenade");
+    if (!ok) return;
+
+    const dmg = randInt(12,20);
+    state.enemy.hp = clamp(state.enemy.hp - dmg, 0, state.enemy.hpMax);
+    pushLog("P", `수류탄 폭발! ${dmg} 피해.`);
+    if (state.enemy.hp <= 0){
+      await onEnemyKilled();
+      state.turn += 1;
+      return;
+    }
+    enemyTurn();
+  }
+
+  function playerHeal(){
+    if (!state.inCombat) return;
+    const heal = randInt(8,14);
+    const before = state.player.hp;
+    state.player.hp = clamp(state.player.hp + heal, 0, state.player.hpMax);
+    pushLog("P", `응급 처치. HP +${state.player.hp - before}.`);
+    enemyTurn();
+  }
+
+  function playerRun(){
+    if (!state.inCombat) return;
+    const pct = 45;
+    if (chance(pct)){
+      pushLog("P", `후퇴 성공. (성공 ${pct}%)`);
+      state.inCombat = false;
+      state.enemy = null;
+      state.location = "탐색 중";
+      state.turn += 1;
+      renderAll();
+      return;
+    }
+    pushLog("P", `후퇴 실패. (성공 ${pct}%)`);
+    enemyTurn(true);
+  }
+
+  async function enemyTurn(isPunish=false){
+    const e = state.enemy;
+    if (!e) return;
+    const {dmg, isCrit} = computeDamageFromRange([e.atk-2, e.atk+2], state.player.def, (e.kind==="pmc"?10:(e.kind==="scav"?7:5)));
+    state.player.hp = clamp(state.player.hp - dmg, 0, state.player.hpMax);
+    pushLog("E", `${isPunish ? "선공! " : ""}${isCrit ? "치명타! " : ""}${dmg} 피해를 입었습니다.`);
+    if (state.player.hp <= 0){
+      await handleDeath("당신은 쓰러졌습니다.");
+      return;
+    }
+    state.turn += 1;
+    renderAll();
+  }
+
+  async function handleDeath(reason){
+    pushLog("SYS", reason);
+    state.inCombat = false;
+    state.enemy = null;
+    state.location = "사망";
+
+    const r = await apiPost("./api/raid_die.php", { user_key:getUserKey() });
+    if (!r.ok){
+      pushLog("SYS", `사망 서버 처리 실패: ${r.error || "unknown"} (raid_die.php)`);
+    } else {
+      pushLog("SYS", "사망 처리 완료. (출격 반입 장비/출격 인벤/투척 소실)");
+      RAID.status = "idle";
+      RAID.inventory = {};
+      RAID.throw = {thr_stone:0, thr_ied:0, thr_grenade:0};
+      RAID.brought = {primary:null, secondary:null, melee:null};
+      LOADOUT = {primary:null, secondary:null, melee:null};
+    }
+    renderAll();
+  }
+
+  async function extract(){
+    if (RAID.status !== "in_raid") return;
+    if (state.inCombat){
+      pushLog("SYS", "교전 중에는 탈출할 수 없습니다.");
+      renderAll();
+      return;
+    }
+    const r = await apiPost("./api/raid_extract.php", { user_key:getUserKey() });
+    if (!r.ok){
+      pushLog("SYS", `탈출 실패: ${r.error || "unknown"} (raid_extract.php)`);
+      renderAll();
+      return;
+    }
+    pushLog("EVT", "탈출 성공. 파밍 아이템이 보관함에 저장되었습니다.");
+    RAID.status = "idle";
+    RAID.inventory = {};
+    RAID.throw = {thr_stone:0, thr_ied:0, thr_grenade:0};
+    RAID.brought = {primary:null, secondary:null, melee:null};
+    LOADOUT = {primary:null, secondary:null, melee:null};
+    state.location = "은신처";
+    await refreshInventory();
+  }
+
+  async function singleReady(){
+    const name = (el("singleName").value || localStorage.getItem(LS_NAME) || "Player").trim() || "Player";
+    localStorage.setItem(LS_NAME, name);
+
+    try{
+      setApiStatus("CONNECTING","info");
+      const r = await apiPost("./api/hello.php", { name });
+      if (!r.ok) throw new Error("hello_failed");
+      setUserKey(r.user_key);
+      pushLog("SYS", `싱글 유저 준비 완료: ${r.user_key} (${r.name})`);
+      setApiStatus("READY","ok");
+      await refreshInventory();
+    }catch(e){
+      setApiStatus("ERROR","bad");
+      pushLog("SYS", "싱글 유저 준비 실패: api/hello.php 확인");
+      renderAll();
+    }
+  }
+
+  async function refreshInventory(){
+    const user_key = getUserKey();
+    if (!user_key) return;
+
+    try{
+      setApiStatus("SYNC","info");
+      const r = await apiGet(`./api/inventory_get.php?user_key=${encodeURIComponent(user_key)}&t=${Date.now()}`);
+      if (!r.ok){
+        setApiStatus("ERROR","bad");
+        pushLog("SYS", `인벤 조회 실패: ${r.error || "unknown"} (inventory_get.php)`);
+        renderAll();
+        return;
+      }
+
+      ITEM_MAP = {};
+      for (const it of (r.items||[])) ITEM_MAP[it.item_id] = it;
+
+      STASH = (r.stash||[]).map(x => ({ item_id:x.item_id, qty:Number(x.qty||0) }));
+      LOADOUT = r.loadout || {primary:null,secondary:null,melee:null};
+
+      RAID = r.raid || {status:"idle",inventory:{},throw:{thr_stone:0,thr_ied:0,thr_grenade:0},brought:{primary:null,secondary:null,melee:null}};
+      if (!RAID.inventory) RAID.inventory = {};
+      if (!RAID.throw) RAID.throw = {thr_stone:0,thr_ied:0,thr_grenade:0};
+      if (!RAID.brought) RAID.brought = {primary:null,secondary:null,melee:null};
+
+      el("btnGrantStarter").disabled = false;
+      setApiStatus("CONNECTED","ok");
+      renderAll();
+    }catch(e){
+      setApiStatus("ERROR","bad");
+      pushLog("SYS", "인벤 조회 실패: non_json_response (inventory_get.php 확인)");
+      renderAll();
+    }
+  }
+
+  async function startRaidIfNeeded(){
+    const user_key = getUserKey();
+    if (!user_key) { pushLog("SYS","싱글 ID가 없습니다. 먼저 '싱글 유저 준비'를 하세요."); return; }
+    if (RAID.status === "in_raid") return;
+
+    const r = await apiPost("./api/raid_start.php", { user_key });
+    if (!r.ok){
+      if (r.error === "already_in_raid"){
+        pushLog("SYS", "이미 출격 중입니다. 상태를 동기화합니다.");
+        await refreshInventory();
+        return;
+      }
+      pushLog("SYS", `자동 출격 시작 실패: ${r.error || "unknown"} (raid_start.php)`);
+      renderAll();
+      return;
+    }
+    pushLog("SYS", "출격이 시작되었습니다. (투척/장비 반입 완료)");
+    await refreshInventory();
+  }
+
+  // ✅ 스왑 체감 로그 강화:
+  // - 요청 아이템 장착 성공 시: "주무기 A → B (A는 RAID BAG로 이동)"
+  async function equip(slot, item_id){
+    const user_key = getUserKey();
+    if (!user_key) return;
+
+    const beforeLoadout = { ...LOADOUT };
+    const beforeStatus = RAID.status;
+
+    const r = await apiPost("./api/inventory_equip.php", { user_key, slot, item_id });
+    if (!r.ok){
+      if (r.error === "raid_bag_not_enough"){
+        pushLog("SYS", "레이드 중에는 RAID BAG에 있는 장비만 스왑할 수 있습니다.");
+        renderAll();
+        return;
+      }
+      if (r.error === "stash_not_enough"){
+        pushLog("SYS", "STASH에 해당 아이템이 없습니다.");
+        renderAll();
+        return;
+      }
+      pushLog("SYS", `장비 변경 실패: ${r.error || "unknown"} (inventory_equip.php)`);
+      renderAll();
+      return;
+    }
+
+    // 서버가 inventory를 내려주면 먼저 반영(체감 빠르게)
+    if (r.inventory && typeof r.inventory === "object") RAID.inventory = r.inventory;
+
+    await refreshInventory();
+
+    const before = beforeLoadout[slot] || null;
+    const after = LOADOUT[slot] || null;
+
+    // 로그 메시지 구성
+    const where = (beforeStatus === "in_raid") ? "RAID BAG" : "STASH";
+    if (!after && before){
+      pushLog("EVT", `${slotLabel(slot)} 해제: ${nm(before)} → (해제)`);
+      return;
+    }
+    if (after && before !== after){
+      if (beforeStatus === "in_raid"){
+        pushLog("EVT", `스왑 성공: ${slotLabel(slot)} ${nm(before)} → ${nm(after)} (이전 장비는 ${where}로 이동)`);
+      } else {
+        pushLog("SYS", `장착 반영: ${slotLabel(slot)} ${nm(before)} → ${nm(after)}`);
+      }
+    } else if (after && before === after){
+      pushLog("SYS", `이미 장착 중입니다: ${slotLabel(slot)} ${nm(after)}`);
+    }
+  }
+
+  async function explore(){
+    const user_key = getUserKey();
+    if (!user_key){
+      pushLog("SYS","먼저 '싱글 유저 준비'를 실행하세요.");
+      renderAll();
+      return;
+    }
+
+    await startRaidIfNeeded();
+    if (RAID.status !== "in_raid") return;
+
+    if (state.player.hp <= 0){
+      pushLog("SYS","사망 상태입니다. 로컬 리셋 후 다시 시작하세요.");
+      renderAll();
+      return;
+    }
+    if (state.inCombat){
+      pushLog("SYS","교전 중에는 탐색할 수 없습니다.");
+      renderAll();
+      return;
+    }
+
+    state.location = "탐색 중";
+    renderAll();
+
+    const r = Math.random();
+    if (r < 0.68){
+      startCombat();
+      return;
+    }
+    if (r < 0.86){
+      const quiet = [
+        "잔해 사이에 바람 소리만 흐릅니다.",
+        "정적… 너무 조용합니다.",
+        "발자국 흔적만 남아 있습니다.",
+        "멀리서 총성이 한 번. 다시 침묵."
+      ];
+      pushLog("EVT", quiet[randInt(0, quiet.length-1)]);
+      if (chance(25)){
+        const rr = await apiPost("./api/raid_add_loot.php", { user_key:getUserKey(), item_id:"thr_stone", qty:1 });
+        if (rr.ok){
+          RAID.inventory["thr_stone"] = (Number(RAID.inventory["thr_stone"]||0)+1);
+          pushLog("EVT","바닥에서 돌맹이를 주웠습니다. (RAID BAG)");
+        }
+      }
+      state.turn += 1;
+      renderAll();
+      return;
+    }
+
+    const dmg = randInt(4,10);
+    state.player.hp = clamp(state.player.hp - dmg, 0, state.player.hpMax);
+    pushLog("EVT", `함정/기습! HP -${dmg}.`);
+    if (state.player.hp <= 0){
+      await handleDeath("탐색 중 사망했습니다.");
+      return;
+    }
+    state.turn += 1;
+    renderAll();
+  }
+
+  function rest(){
+    if (RAID.status !== "in_raid"){
+      pushLog("SYS","출격 중에만 정비가 의미가 있습니다.");
+      renderAll();
+      return;
+    }
+    if (state.inCombat){
+      pushLog("SYS","교전 중에는 정비할 수 없습니다.");
+      renderAll();
+      return;
+    }
+    const heal = randInt(6,12);
+    const before = state.player.hp;
+    state.player.hp = clamp(state.player.hp + heal, 0, state.player.hpMax);
+    pushLog("EVT", `은신/정비. HP +${state.player.hp - before}.`);
+    state.turn += 1;
+    renderAll();
+  }
+
+  async function grantStarter(){
+    pushLog("SYS","기본 지급은 DB에서 수동 SQL 또는 '싱글 생성 시 지급'으로 처리하는 것을 권장합니다.");
+    pushLog("SYS","원하시면 '첫 생성 시 기본 지급'을 서버에 통합해드릴 수 있습니다.");
+    renderAll();
+  }
+
+  // Tabs
+  function openTab(id){
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("on"));
+    document.querySelectorAll(".tabPanel").forEach(p => p.classList.remove("on"));
+    document.querySelector(`.tab[data-tab="${id}"]`).classList.add("on");
+    el(id).classList.add("on");
+  }
+  function bindTabs(){
+    document.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", () => openTab(btn.dataset.tab));
+    });
+  }
+
+  // Help modal
+  const HelpUI = {
+    open(){ el("helpModalWrap").style.display = "flex"; },
+    close(){ el("helpModalWrap").style.display = "none"; }
+  };
+
+  // Throw modal close helpers
+  function wireModalClose(wrapId, closeFn){
+    el(wrapId).addEventListener("click", (e) => { if (e.target === el(wrapId)) closeFn(); });
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape" && el(wrapId).style.display === "flex") closeFn(); });
+  }
+
+  function wireActionbar(){
+    el("mExplore").onclick = () => el("actExplore").click();
+    el("mRest").onclick = () => el("actRest").click();
+    el("mExtract").onclick = () => el("btnExtract").click();
+    el("mAttack").onclick = () => el("actAttack").click();
+    el("mThrow").onclick = () => el("actThrow").click();
+    el("mHeal").onclick = () => el("actHeal").click();
+    el("mRun").onclick = () => el("actRun").click();
+    el("mBag").onclick = () => { openTab("tabBag"); el("btnBagRefresh").click(); };
+    el("mSync").onclick = () => el("btnInvRefresh").click();
+    el("mHelp").onclick = () => HelpUI.open();
+  }
+
+  function init(){
+    bindTabs();
+    wireActionbar();
+
+    // desktop wiring
+    el("btnSingleReady").onclick = singleReady;
+    el("btnInvRefresh").onclick = refreshInventory;
+    el("btnBagRefresh").onclick = () => { refreshInventory(); openTab("tabBag"); };
+    el("btnExtract").onclick = extract;
+
+    el("btnResetLocal").onclick = () => {
+      state = { turn:1, location:"은신처", inCombat:false, player:{hpMax:80,hp:80,def:2}, enemy:null, log:[] };
+      lastLogRendered = 0;
+      el("log").innerHTML = "";
+      pushLog("SYS","로컬 리셋 완료. (서버 데이터는 유지)");
+      renderAll();
+    };
+
+    el("actExplore").onclick = explore;
+    el("actRest").onclick = rest;
+    el("actAttack").onclick = playerAttack;
+    el("actHeal").onclick = playerHeal;
+    el("actRun").onclick = playerRun;
+
+    // Throw open
+    el("actThrow").onclick = () => {
+      if (!state.inCombat) return;
+      if (RAID.status !== "in_raid") return;
+      if (availThrow("thr_stone")+availThrow("thr_ied")+availThrow("thr_grenade") <= 0){
+        pushLog("SYS","투척 아이템이 없습니다.");
+        renderAll();
+        return;
+      }
+      ThrowUI.open();
+    };
+    el("btnThrowClose").onclick = ThrowUI.close;
+    el("btnThrowCancel").onclick = ThrowUI.close;
+    wireModalClose("throwModalWrap", ThrowUI.close);
+
+    el("btnThrowStone").onclick = async () => { ThrowUI.close(); await doThrowStone(); };
+    el("btnThrowIed").onclick   = async () => { ThrowUI.close(); await doThrowIed(); };
+    el("btnThrowG").onclick     = async () => { ThrowUI.close(); await doThrowGrenade(); };
+
+    // Help wiring
+    el("btnHelp").onclick = () => HelpUI.open();
+    el("btnHelpClose").onclick = () => HelpUI.close();
+    el("btnHelpOk").onclick = () => HelpUI.close();
+    el("btnHelpDontShow").onclick = () => {
+      localStorage.setItem(LS_HELP_OFF, "1");
+      HelpUI.close();
+      pushLog("SYS","도움말 숨김 설정이 저장되었습니다. (상단/하단 ‘도움말’로 다시 열 수 있음)");
+    };
+    wireModalClose("helpModalWrap", HelpUI.close);
+
+    el("btnGrantStarter").onclick = grantStarter;
+
+    // Dropdown equips (power users)
+    el("eqPrimary").onchange   = (e) => equip("primary", e.target.value);
+    el("eqSecondary").onchange = (e) => equip("secondary", e.target.value);
+    el("eqMelee").onchange     = (e) => equip("melee", e.target.value);
+
+    // keyboard shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (e.repeat) return;
+      if (e.key === "1") el("actAttack").click();
+      if (e.key === "2") el("actThrow").click();
+      if (e.key === "3") el("actHeal").click();
+      if (e.key === "4") el("actRun").click();
+      if (e.key.toLowerCase() === "n") el("actExplore").click();
+      if (e.key === "F1") HelpUI.open();
+    });
+
+    const k = getUserKey();
+    el("singleKey").textContent = k || "-";
+    el("singleName").value = localStorage.getItem(LS_NAME) || "";
+
+    pushLog("SYS","탐색(N)을 누르면 자동 출격 → 교전/루팅 → 탈출 시 STASH 저장");
+    pushLog("SYS","레이드 중 스왑은 RAID BAG에서만. (아이템 카드의 ‘장착’ 버튼)");
+
+    renderAll();
+
+    if (k) refreshInventory();
+    else setApiStatus("DISCONNECTED");
+
+    // first run help
+    if (localStorage.getItem(LS_HELP_OFF) !== "1"){
+      HelpUI.open();
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
